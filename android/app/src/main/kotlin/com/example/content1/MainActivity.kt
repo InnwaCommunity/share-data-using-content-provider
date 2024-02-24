@@ -15,47 +15,85 @@ import io.flutter.plugin.common.MethodChannel.Result
 import com.example.content1.MyContentProvider
 
 class MainActivity: FlutterActivity() {
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    var messenger: BinaryMessenger = flutterEngine?.dartExecutor?.binaryMessenger ?: return
 
-        val CHANNEL = "com.example.data_channel"
-        val messenger: BinaryMessenger = flutterEngine?.dartExecutor?.binaryMessenger ?: return
+    MethodChannel(messenger, MyContentProvider.CHANNELKEY).setMethodCallHandler { call, result ->
+        if (call.method == "sendData") {
 
-        MethodChannel(messenger, CHANNEL).setMethodCallHandler(
-            object : MethodCallHandler {
-                override fun onMethodCall(call: MethodCall, result: Result) {
-                    if (call.method == "sendData") {
-                        val inputdata = call.arguments as String
-                        val values=ContentValues()
-                        values.put(MyContentProvider.name,inputdata)
-                            contentResolver.insert(MyContentProvider.CONTENT_URI,values)
-                            Toast.makeText(baseContext, "New Record Inserted", Toast.LENGTH_LONG).show()
-                            result.success("Data received and processed on Android")
-                    } else if(call.method == "receiveData"){
-                        val cursor = contentResolver.query(Uri.parse("content://nyein.chann.moe.provider/users"), null, null, null, null)
-if (cursor != null) {
-    if (cursor.moveToFirst()) {
-        val strBuild = StringBuilder()
-        while (!cursor.isAfterLast) {
-            strBuild.append("""
-            
-                ${cursor.getString(cursor.getColumnIndex("id"))}-${cursor.getString(cursor.getColumnIndex("name"))}
-                """.trimIndent())
-            cursor.moveToNext()
-        }
-        result.success(strBuild);
-    }
-    cursor.close() // Ensure you close the cursor when you're done with it
-} else {
-    result.success("empty")
-}
+            var currentAppCursor = contentResolver.query(
+                MyContentProvider.CURRENTAPP_URI,
+                null,
+                null,
+                null,
+                null
+            )
+            var otherAppCursor = contentResolver.query(
+                MyContentProvider.OTHERAPP_URI,
+                null,
+                null,
+                null,
+                null
+            )
+            var username = call.arguments as String
 
-                    }else{
-                        result.notImplemented()
+            try {
+                var contentValues = ContentValues()
+                if (otherAppCursor != null && otherAppCursor.count > 0) {
+                    while (otherAppCursor.moveToNext()) {
+                        var otherAppUsername =
+                            otherAppCursor.getString(otherAppCursor.getColumnIndex("name"))
+                        contentValues.put(
+                            MyContentProvider.name,
+                            otherAppUsername
+                        )
+                        username = otherAppUsername
+                        if (currentAppCursor != null) {
+                            if (currentAppCursor.count > 0) {
+                                contentResolver.update(
+                                    MyContentProvider.CURRENTAPP_URI,
+                                    contentValues,
+                                    null,
+                                    null
+                                )
+                            } else {
+                                contentResolver.insert(
+                                    MyContentProvider.CURRENTAPP_URI,
+                                    contentValues
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    if (currentAppCursor != null) {
+                        if (currentAppCursor.count > 0) {
+                            while (currentAppCursor.moveToNext()) {
+                                var currentAppUsername = currentAppCursor.getString(
+                                    currentAppCursor.getColumnIndex("name")
+                                )
+                                username = currentAppUsername
+                            }
+                        } else {
+                            contentValues.put(MyContentProvider.name, username)
+                            contentResolver.insert(
+                                MyContentProvider.CURRENTAPP_URI,
+                                contentValues
+                            )
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                result.error("ERROR_CODE", "Error occurred: ${e.message}", null)
+            } finally {
+                currentAppCursor?.close()
+                otherAppCursor?.close()
             }
-        )
+            result.success(username)
+        } else {
+            result.notImplemented()
+        }
     }
+}
 }
