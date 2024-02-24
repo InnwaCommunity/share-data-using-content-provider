@@ -37,16 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _sendData(String data) async {
     const platform = MethodChannel('com.example.data_channel');
     try {
-      await platform.invokeMethod('sendData', data);
-    } on PlatformException catch (e) {
-      log('Sending data error : ${e.toString()}');
-    }
-  }
-
-  Future<void> _receive() async {
-    const platform = MethodChannel('com.example.data_channel');
-    try {
-      dynamic result = await platform.invokeMethod('receiveData');
+      dynamic result = await platform.invokeMethod('sendData', data);
       if (result != 'empty') {
         text = result.toString();
         setState(() {});
@@ -54,12 +45,6 @@ class _MyHomePageState extends State<MyHomePage> {
     } on PlatformException catch (e) {
       log('Sending data error : ${e.toString()}');
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _receive();
   }
 
   @override
@@ -121,10 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
               child: ElevatedButton(
                 onPressed: () {
                   if (datacontroller.text.isNotEmpty) {
-                    _sendData(datacontroller.text).then((value){
-                       _receive();
-                       datacontroller.clear();
-                    });
+                    _sendData(datacontroller.text);
                   }
                 },
                 style: ElevatedButton.styleFrom(

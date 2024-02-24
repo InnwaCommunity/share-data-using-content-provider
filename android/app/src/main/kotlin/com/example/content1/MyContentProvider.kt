@@ -10,14 +10,20 @@ import android.net.Uri
 
 class MyContentProvider : ContentProvider() {
     companion object {
+        var CHANNELKEY = "com.example.data_channel"
+        const val currentappId= "com.example.content1"
+        const val otherappId= "com.nyeinchannmoe.contentprovider"
+
         // defining authority so that other application can access it
-        const val PROVIDER_NAME = "nyein.chann.moe.provider"
+        const val currentAppProvider = "$currentappId.provider"
+        const val otherAppProvider = "$otherappId.provider"
 
         // defining content URI
-        const val URL = "content://$PROVIDER_NAME/users"
-
-        // parsing the content URI
-        val CONTENT_URI = Uri.parse(URL)
+        const val CURRENTURL = "content://$currentAppProvider/users"
+        const val OTHERURL = "content://$otherAppProvider/users"
+        
+        val CURRENTAPP_URI = Uri.parse(CURRENTURL)
+        val OTHERAPP_URI = Uri.parse(OTHERURL)
         const val id = "id"
         const val name = "name"
         const val uriCode = 1
@@ -47,7 +53,7 @@ class MyContentProvider : ContentProvider() {
 
             // to access whole table
             uriMatcher!!.addURI(
-                PROVIDER_NAME,
+                currentappId,
                 "users",
                 uriCode
             )
@@ -55,7 +61,7 @@ class MyContentProvider : ContentProvider() {
             // to access a particular row
             // of the table
             uriMatcher!!.addURI(
-                PROVIDER_NAME,
+                currentappId,
                 "users/*",
                 uriCode
             )
@@ -107,7 +113,7 @@ class MyContentProvider : ContentProvider() {
         val rowID = db!!.insert(TABLE_NAME, "", values)
         if (rowID > 0) {
             val _uri =
-                ContentUris.withAppendedId(CONTENT_URI, rowID)
+                ContentUris.withAppendedId(CURRENTAPP_URI, rowID)
             context!!.contentResolver.notifyChange(_uri, null)
             return _uri
         }
